@@ -16,27 +16,47 @@
  *
  *=========================================================================*/
 #include "itkImage.h"
+#include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 #include "itkRescaleIntensityImageFilter.h"
 #include "itkRecursiveMultiResolutionPyramidImageFilter.h"
 
-using UnsignedCharImageType = itk::Image<unsigned char, 2>;
+using IntegralImageType = itk::Image<short, 3>;
 
 static void
-CreateImage(UnsignedCharImageType::Pointer image);
+CreateImage(IntegralImageType::Pointer image);
 
 int
-main(int, char *[])
+main(int argc, char * argv[])
 {
-  UnsignedCharImageType::Pointer image = UnsignedCharImageType::New();
-  CreateImage(image);
+  if (argc < 2)
+  {
+    std::cout << "Usage: " << std::endl;
+    std::cout << argv[0];
+    std::cout << " [InputFileName] [OutputFileNamePrefix]";
+    std::cout << std::endl;
+  }
 
-  using FloatImageType = itk::Image<float, 2>;
+  IntegralImageType::Pointer image = IntegralImageType::New();
+  if (argc >= 2) // read given file
+  {
+    using ReaderType = itk::ImageFileReader<IntegralImageType>;
+    ReaderType::Pointer reader = ReaderType::New();
+    reader->SetFileName(argv[1]);
+    reader->Update();
+    image = reader->GetOutput();
+  }
+  else // create synthetic image
+  {
+    CreateImage(image);
+  }
+
+  using FloatImageType = itk::Image<float, 3>;
 
   unsigned int numberOfLevels = 4;
 
   using RecursiveMultiResolutionPyramidImageFilterType =
-    itk::RecursiveMultiResolutionPyramidImageFilter<UnsignedCharImageType, FloatImageType>;
+    itk::RecursiveMultiResolutionPyramidImageFilter<IntegralImageType, IntegralImageType>;
   RecursiveMultiResolutionPyramidImageFilterType::Pointer recursiveMultiResolutionPyramidImageFilter =
     RecursiveMultiResolutionPyramidImageFilterType::New();
   recursiveMultiResolutionPyramidImageFilter->SetInput(image);
@@ -48,21 +68,21 @@ main(int, char *[])
   // This outputs the levels (0 is the lowest resolution)
   for (unsigned int i = 0; i < numberOfLevels; ++i)
   {
-    // Scale so we can write to a PNG
-    using RescaleFilterType = itk::RescaleIntensityImageFilter<FloatImageType, UnsignedCharImageType>;
-    RescaleFilterType::Pointer rescaleFilter = RescaleFilterType::New();
-    rescaleFilter->SetInput(recursiveMultiResolutionPyramidImageFilter->GetOutput(i));
-    rescaleFilter->SetOutputMinimum(0);
-    rescaleFilter->SetOutputMaximum(255);
-    rescaleFilter->Update();
-
-    using FileWriterType = itk::ImageFileWriter<UnsignedCharImageType>;
+    using FileWriterType = itk::ImageFileWriter<IntegralImageType>;
     FileWriterType::Pointer writer = FileWriterType::New();
-    std::stringstream       ss;
-    ss << "output_" << i << ".png";
+
+    std::stringstream ss;
+    char *            filenamePrefix = "output_";
+    if (argc >= 3)
+    {
+      filenamePrefix = argv[2];
+    }
+    ss << filenamePrefix << i << ".mha";
     std::cout << "Writing " << ss.str() << std::endl;
+
     writer->SetFileName(ss.str());
-    writer->SetInput(rescaleFilter->GetOutput());
+    writer->SetInput(recursiveMultiResolutionPyramidImageFilter->GetOutput(i));
+    writer->SetUseCompression(true);
     writer->Update();
   }
 
@@ -71,31 +91,34 @@ main(int, char *[])
 
 
 void
-CreateImage(UnsignedCharImageType::Pointer image)
+CreateImage(IntegralImageType::Pointer image)
 {
   // Create a black image with a white region
 
-  UnsignedCharImageType::IndexType start;
+  IntegralImageType::IndexType start;
   start.Fill(0);
 
-  UnsignedCharImageType::SizeType size;
+  IntegralImageType::SizeType size;
   size.Fill(200);
 
-  UnsignedCharImageType::RegionType region(start, size);
+  IntegralImageType::RegionType region(start, size);
   image->SetRegions(region);
   image->Allocate();
   image->FillBuffer(0);
 
-  // Make a square
+  // Make a cuboid
   for (unsigned int r = 20; r < 80; r++)
   {
     for (unsigned int c = 30; c < 100; c++)
     {
-      UnsignedCharImageType::IndexType pixelIndex;
-      pixelIndex[0] = r;
-      pixelIndex[1] = c;
-
-      image->SetPixel(pixelIndex, 255);
+      for (unsigned int l = 40; l < 60; l++)
+      {
+        IntegralImageType::IndexType pixelIndex;
+        pixelIndex[0] = r;
+        pixelIndex[1] = c;
+        pixelIndex[2] = l;
+        image->SetPixel(pixelIndex, 255);
+      }
     }
   }
 }
