@@ -8,6 +8,7 @@ Common
   GlobalRegistrationOfTwoImages/Documentation.rst
   MatchFeaturePoints/Documentation.rst
   MultiresolutionPyramidFromImage/Documentation.rst
+  MultiresolutionPyramidFromImage2/Documentation.rst
   MutualInformation/Documentation.rst
   Perform2DTranslationRegistrationWithMeanSquares/Documentation.rst
   PerformMultiModalityRegistrationWithMutualInformation/Documentation.rst
