@@ -41,6 +41,8 @@ main(int, char *[])
     RecursiveMultiResolutionPyramidImageFilterType::New();
   recursiveMultiResolutionPyramidImageFilter->SetInput(image);
   recursiveMultiResolutionPyramidImageFilter->SetNumberOfLevels(numberOfLevels);
+  const auto * shrinkFactors = recursiveMultiResolutionPyramidImageFilter->GetStartingShrinkFactors();
+  recursiveMultiResolutionPyramidImageFilter->SetUseShrinkImageFilter(false);
   recursiveMultiResolutionPyramidImageFilter->Update();
 
   // This outputs the levels (0 is the lowest resolution)
