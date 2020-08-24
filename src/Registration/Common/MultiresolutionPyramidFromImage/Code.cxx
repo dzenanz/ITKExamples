@@ -18,7 +18,7 @@
 #include "itkImage.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
-#include "itkRescaleIntensityImageFilter.h"
+#include "itkMultiResolutionPyramidImageFilter.h"
 #include "itkRecursiveMultiResolutionPyramidImageFilter.h"
 
 using IntegralImageType = itk::Image<short, 3>;
@@ -55,15 +55,13 @@ main(int argc, char * argv[])
 
   unsigned int numberOfLevels = 4;
 
-  using RecursiveMultiResolutionPyramidImageFilterType =
-    itk::RecursiveMultiResolutionPyramidImageFilter<IntegralImageType, IntegralImageType>;
-  RecursiveMultiResolutionPyramidImageFilterType::Pointer recursiveMultiResolutionPyramidImageFilter =
-    RecursiveMultiResolutionPyramidImageFilterType::New();
-  recursiveMultiResolutionPyramidImageFilter->SetInput(image);
-  recursiveMultiResolutionPyramidImageFilter->SetNumberOfLevels(numberOfLevels);
-  const auto * shrinkFactors = recursiveMultiResolutionPyramidImageFilter->GetStartingShrinkFactors();
-  recursiveMultiResolutionPyramidImageFilter->SetUseShrinkImageFilter(false);
-  recursiveMultiResolutionPyramidImageFilter->Update();
+  using PyramidImageFilterType = itk::MultiResolutionPyramidImageFilter<IntegralImageType, IntegralImageType>;
+  PyramidImageFilterType::Pointer pyramidImageFilter = PyramidImageFilterType::New();
+  pyramidImageFilter->SetInput(image);
+  pyramidImageFilter->SetNumberOfLevels(numberOfLevels);
+  const auto * shrinkFactors = pyramidImageFilter->GetStartingShrinkFactors();
+  pyramidImageFilter->SetUseShrinkImageFilter(true);
+  pyramidImageFilter->Update();
 
   // This outputs the levels (0 is the lowest resolution)
   for (unsigned int i = 0; i < numberOfLevels; ++i)
@@ -81,7 +79,7 @@ main(int argc, char * argv[])
     std::cout << "Writing " << ss.str() << std::endl;
 
     writer->SetFileName(ss.str());
-    writer->SetInput(recursiveMultiResolutionPyramidImageFilter->GetOutput(i));
+    writer->SetInput(pyramidImageFilter->GetOutput(i));
     writer->SetUseCompression(true);
     writer->Update();
   }
